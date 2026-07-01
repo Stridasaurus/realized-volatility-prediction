@@ -1,0 +1,52 @@
+#!/bin/bash
+# Auto-updates environment.yml before each commit.
+# Captures both conda and pip-installed packages.
+
+[ -f "environment.yml" ] || exit 0
+
+# Source conda so it's available in this shell
+CONDA_SH="$USERPROFILE/miniconda3/etc/profile.d/conda.sh"
+[ -f "$CONDA_SH" ] || CONDA_SH="$HOME/miniconda3/etc/profile.d/conda.sh"
+[ -f "$CONDA_SH" ] || CONDA_SH="$HOME/anaconda3/etc/profile.d/conda.sh"
+[ -f "$CONDA_SH" ] && source "$CONDA_SH"
+
+ENV_NAME=$(grep "^name:" environment.yml | awk '{print $2}' | tr -d '\r')
+[ -z "$ENV_NAME" ] && exit 0
+
+conda env list 2>/dev/null | grep -q "^$ENV_NAME " || {
+  echo "Warning: conda env '$ENV_NAME' not found, skipping environment.yml update"
+  exit 0
+}
+
+CONDA_HISTORY=$(conda run -n "$ENV_NAME" conda env export --from-history 2>/dev/null)
+
+CHANNELS=$(echo "$CONDA_HISTORY" | awk '/^channels:/{p=1;next} /^dependencies:/{p=0} p && /^  -/{print}')
+CONDA_DEPS=$(echo "$CONDA_HISTORY" | awk '/^dependencies:/{p=1;next} /^prefix:|^$/{p=0} p && /^  -/ && !/pip/{print}')
+# Get only top-level pip packages (not transitive deps), cross-referenced
+# with conda list to confirm they're pip-installed (pypi channel), not conda-managed.
+PYPI_NAMES=$(conda run -n "$ENV_NAME" conda list 2>/dev/null | awk 'NR>3 && $4=="pypi"{print $1}')
+PIP_PKGS=$(conda run -n "$ENV_NAME" pip list --not-required --format=freeze 2>/dev/null | \
+  grep -v "^#" | \
+  while read -r pkg; do
+    name=$(echo "$pkg" | cut -d= -f1)
+    norm=$(echo "$name" | tr '[:upper:]' '[:lower:]' | tr '_' '-')
+    if echo "$PYPI_NAMES" | grep -qi "^${norm}$\|^$(echo "$name" | tr '[:upper:]' '[:lower:]')$"; then
+      echo "    - ${pkg}"
+    fi
+  done)
+
+{
+  echo "name: $ENV_NAME"
+  echo "channels:"
+  echo "$CHANNELS"
+  echo "dependencies:"
+  echo "$CONDA_DEPS"
+  if [ -n "$PIP_PKGS" ]; then
+    echo "  - pip"
+    echo "  - pip:"
+    echo "$PIP_PKGS"
+  fi
+} > environment.yml
+
+git add environment.yml
+echo "Auto-updated environment.yml"

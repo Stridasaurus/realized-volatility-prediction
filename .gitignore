@@ -1,0 +1,19 @@
+# --- Generated artifacts (regenerated on every run; not committed — go to Drive per manifesto §10) ---
+*.pt
+*.pth
+*.db
+optuna_*.db
+
+# --- Jupyter / Python ---
+.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
