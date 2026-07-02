@@ -2,7 +2,7 @@
 
 Realized Volatility Prediction — MTH 5320 Deep Learning, Project 2. Can a small LSTM
 beat HAR at forecasting SPY realized volatility? Full scope, invariants, and design
-rationale are in `MANIFESTO.md` (v2, canonical) — read it before doing any work here.
+rationale are in `MANIFESTO.md` (v3, canonical) — read it before doing any work here.
 
 ## Environment
 
