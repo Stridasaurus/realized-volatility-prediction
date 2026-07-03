@@ -1,0 +1,60 @@
+# Frozen controls (manifesto section 7) - identical across all experiments.
+# floors are written once by scripts/freeze_snapshot.py at data freeze; never hand-edit.
+project: realized-volatility-prediction
+
+snapshot:
+  end_date: "2026-06-30"
+  manifest: data/snapshot_manifest.json
+
+splits:
+  train_start: "2005-01-01"
+  val_start: "2018-01-01"
+  test_start: "2020-01-01"
+  test_end: "2026-06-30"
+  embargo_days: auto        # resolved = max(har_monthly_lag, model.seq_len_max, max_aux_window)
+  retrain_cadence: monthly  # frozen control
+  window_len: null          # null -> initial train span length (frozen control)
+
+lookbacks:
+  har_monthly_lag: 22
+  max_aux_window: 22
+
+targets:
+  primary: rv_tv
+  secondary: rv_oc
+
+horizons: [1, 5]
+
+floors:
+  rv_tv: null
+  rv_oc: null
+
+calibration_band: [0.8, 1.25]
+
+ewma:
+  lambda_start: 0.80
+  lambda_stop: 0.99
+  lambda_step: 0.005
+  fallback_lambda: 0.94
+  warmup_min_obs: 60
+
+model:
+  family: lstm
+  seq_len_max: 66           # Optuna search upper bound; feeds embargo auto-resolution
+  hp:                       # dev defaults; frozen HP set replaces these after Stage-1 tuning
+    hidden: 32
+    layers: 1
+    dropout: 0.1
+    lr: 0.001
+    weight_decay: 0.0
+    batch_size: 64
+    seq_len: 22
+  max_epochs: 200
+  patience: 10
+  inner_val_frac: 0.15
+  grad_clip: 1.0
+  use_cuda: false           # determinism first (model-harness SPEC E6)
+
+seeds:
+  dev: [0, 1, 2, 3, 4]
+  headline: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
