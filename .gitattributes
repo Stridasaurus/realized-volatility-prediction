@@ -1,0 +1,5 @@
+# The frozen snapshot is checksummed byte-for-byte (data/snapshot_manifest.json);
+# line-ending normalization on checkout would silently break the SHA-256 match.
+data/raw/*.csv -text
+data/snapshot_manifest.json -text
+results/** -text
