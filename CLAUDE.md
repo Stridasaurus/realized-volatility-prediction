@@ -24,5 +24,5 @@ engine implemented and tested (116 pytests, `python -m pytest`); data snapshot f
 passes); classical field scored on the frozen splits, both targets/horizons
 (`scripts/run_stage0.py`, artifacts committed under `results/stage0_classical/`).
 HAR tops every block; GARCH statistically indistinguishable from HAR on TV.
-Next: Stage 1 (leak-safe Optuna tuning on TV, then RV-only net vs HAR).
-Pending: `docs/AMENDMENTS-PENDING.md` — three manifesto amendments to ratify.
+Manifesto amendments ratified 2026-07-03 (manual Stooq acquisition, Tier 1/2/3 menu,
+log-HAR). Next: Stage 1 (leak-safe Optuna tuning on TV, then RV-only net vs HAR).

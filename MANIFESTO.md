@@ -192,8 +192,11 @@ direction points *downward* (a module may use those listed under "Depends on," n
 
 ### `features` — `src/features.py`
 - **Responsibility:** build the leak-safe feature matrix (target history + tiered aux features).
-- **Owns:** the feature-level leak contract; the Tier 1/2/3 aux menu; scaler/transform objects
-  (fit on train only, applied forward).
+- **Owns:** the feature-level leak contract; the Tier 1/2/3 aux menu — enumerated and
+  pre-registered in `specs/features/SPEC.md` §2 (Tier 1: lagged log-target 0–21 + 5d/22d log
+  aggregates; Tier 2: SPY return, |return|, overnight return, volume ratio; Tier 3: log VIX, VIX
+  change, implied daily variance; ratified 2026-07-03, frozen before Stage-2 test contact);
+  scaler/transform objects (fit on train only, applied forward).
 - **Doesn't own:** the *temporal* split (that's `splits`); the targets (that's `data`).
 - **Depends on:** `data`.
 - **Done-check:** the future-perturbation leakage test (§7) passes; every scaler's fit-indices are
@@ -347,7 +350,8 @@ ones whose violation silently invalidates the project.
 - **A classical field, not a lone benchmark: persistence, EWMA, AR(1) on log-target, HAR,
   GARCH(1,1).** All are closed-form or OLS — near-zero cost — and they are what makes "HAR is hard
   to beat" a finding on this target instead of imported folklore. GARCH stays context (fit on
-  close-to-close returns; its object is total variance, so it is scored against TV).
+  close-to-close returns; its object is total variance, so it is scored against TV). AR(1) and
+  HAR are both fit in log space (see glossary **HAR**; ratified 2026-07-03).
 - **Two v1 targets, both from the same daily OHLC snapshot.** Primary **TV** = per-day
   Rogers–Satchell + squared overnight return: approximately conditionally unbiased for total daily
   variance, which is precisely what Patton-validity of QLIKE ranking and the DM test requires —
@@ -374,8 +378,12 @@ ones whose violation silently invalidates the project.
   reproducibility executable and turns source choice into a one-time quality decision. The
   snapshot's OHLC must be verified internally consistent on one basis (data done-check) — a mixed
   basis silently corrupts both range estimators and the overnight return. Stooq is the cleaner
-  programmatic daily source; CBOE is the official VIX source. FRED (`VIXCLS`, yields, dollar) is
-  the portfolio-stage source for cross-asset features.
+  daily source but **login-gates CSV export** (discovered at freeze, 2026-07): the snapshot's SPY
+  leg is a **manual export from a logged-in session**, canonicalized and checksummed by
+  `scripts/freeze_snapshot.py` with a provenance note in the manifest (amendment ratified
+  2026-07-03; the freeze-and-checksum contract is unchanged). CBOE is the official VIX source and
+  remains programmatic. FRED (`VIXCLS`, yields, dollar) is the portfolio-stage source for
+  cross-asset features.
 - **Split: fixed three-way chronological** — train 2005→2017 (includes 2008), val 2018→2019,
   test 2020→snapshot end (COVID, 2022 bear, calm) — with an embargo gap and monthly walk-forward
   retrain inside the test region. Nested walk-forward is the future-work upgrade. Tune on
@@ -430,8 +438,12 @@ Use these exact terms from manifesto to code.
   bar under the bar.
 - **EWMA:** exponentially weighted moving average of the lagged target; decay fit on train
   (RiskMetrics λ=0.94 fallback).
-- **HAR:** Heterogeneous AutoRegressive model; OLS on daily/weekly/monthly lagged volatility.
-  **The presumptive bar** — whether it actually tops the classical field here is research
+- **HAR:** Heterogeneous AutoRegressive model; OLS on daily/weekly/monthly lagged volatility,
+  **fit on the log-target (log-HAR)** with the lognormal half-variance back-transform, per the §7
+  log-target invariant (pre-registered in `specs/baselines/SPEC.md`; ratified 2026-07-03).
+  Corsi's original level-space HAR is *not* fielded — it may appear only as a clearly-labeled
+  descriptive robustness footnote in the report, never as a competitor in the pre-specified
+  field. **The presumptive bar** — whether it actually tops the classical field here is research
   question (1), tested, not assumed.
 - **GARCH(1,1):** conditional-variance-of-returns model; **context baseline only.** Fit on
   close-to-close returns; forecasts *total* return variance, so scored against TV.
