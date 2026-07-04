@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
+import time
 import warnings
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -51,15 +52,27 @@ def _resolve_config(cfg: dict) -> dict:
     elif not isinstance(emb, int) or emb <= 0:
         raise ValueError(f"embargo_days must be 'auto' or a positive int, got {emb!r}")
     if cfg["floors"]["rv_tv"] is None or cfg["floors"]["rv_oc"] is None:
-        warnings.warn("QLIKE floors are unset — run scripts/freeze_snapshot.py before scoring",
-                      UserWarning)
+        warnings.warn(
+            "QLIKE floors are unset — run scripts/freeze_snapshot.py before scoring",
+            UserWarning,
+        )
     return cfg
 
 
 def load_config(path: Path = CONFIG_PATH) -> dict:
     cfg = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
-    required = ["snapshot", "splits", "lookbacks", "targets", "horizons", "floors",
-                "calibration_band", "ewma", "model", "seeds"]
+    required = [
+        "snapshot",
+        "splits",
+        "lookbacks",
+        "targets",
+        "horizons",
+        "floors",
+        "calibration_band",
+        "ewma",
+        "model",
+        "seeds",
+    ]
     missing = [k for k in required if k not in cfg]
     if missing:
         raise ValueError(f"config missing required key(s): {missing}")
@@ -81,8 +94,14 @@ def _versions() -> dict:
 
 def _git_rev() -> str:
     try:
-        return subprocess.run(["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, timeout=10,
-                              capture_output=True, text=True, check=True).stdout.strip()
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO_ROOT,
+            timeout=10,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
     except Exception:
         return "unknown"
 
@@ -93,33 +112,58 @@ def _run_id(config: dict) -> str:
     return f"{ts}_{hashlib.sha256(blob).hexdigest()[:8]}"
 
 
-def save_run(experiment: str, config: dict, preds: pd.DataFrame, metrics: dict,
-             results_dir: Path = RESULTS_DIR) -> Path:
+def save_run(
+    experiment: str,
+    config: dict,
+    preds: pd.DataFrame,
+    metrics: dict,
+    results_dir: Path = RESULTS_DIR,
+) -> Path:
     missing = [c for c in _PRED_COLS if c not in preds.columns]
     if missing:
         raise ValueError(f"preds missing required column(s): {missing}")
 
     config = dict(config)
     config.setdefault("provenance", {})
-    config["provenance"].update({"versions": _versions(), "git_rev": _git_rev(),
-                                 "saved_utc": datetime.now(timezone.utc).isoformat()})
+    config["provenance"].update(
+        {
+            "versions": _versions(),
+            "git_rev": _git_rev(),
+            "saved_utc": datetime.now(timezone.utc).isoformat(),
+        }
+    )
 
     run_dir = Path(results_dir) / experiment / _run_id(config)
     if run_dir.exists():
-        raise FileExistsError(f"run dir already exists (results are append-only): {run_dir}")
+        raise FileExistsError(
+            f"run dir already exists (results are append-only): {run_dir}"
+        )
     tmp = run_dir.with_suffix(".tmp")
     if tmp.exists():
-        raise FileExistsError(f"leftover partial write: {tmp} — inspect and remove manually")
+        raise FileExistsError(
+            f"leftover partial write: {tmp} — inspect and remove manually"
+        )
     tmp.mkdir(parents=True)
 
     p = preds.copy()
     p["origin_date"] = pd.to_datetime(p["origin_date"]).dt.tz_localize(None)
     (tmp / "config.json").write_text(
-        json.dumps(config, sort_keys=True, indent=2, default=str), encoding="utf-8")
+        json.dumps(config, sort_keys=True, indent=2, default=str), encoding="utf-8"
+    )
     p.to_parquet(tmp / "preds.parquet", index=False)
     (tmp / "metrics.json").write_text(
-        json.dumps(metrics, sort_keys=True, indent=2, default=str), encoding="utf-8")
-    tmp.rename(run_dir)
+        json.dumps(metrics, sort_keys=True, indent=2, default=str), encoding="utf-8"
+    )
+    # On Windows the rename can transiently fail (WinError 5) while an AV scanner or
+    # indexer holds a handle on the freshly written directory — retry briefly.
+    for attempt in range(5):
+        try:
+            tmp.rename(run_dir)
+            break
+        except PermissionError:
+            if attempt == 4:
+                raise
+            time.sleep(0.1 * (attempt + 1))
     return run_dir
 
 
@@ -161,7 +205,9 @@ def validate_run(run_dir: Path) -> list[str]:
                 for h, leaf in per_h.items():
                     missing_k = _METRIC_LEAF_KEYS - set(leaf)
                     if missing_k:
-                        problems.append(f"metrics[{model}][{target}][{h}] missing {sorted(missing_k)}")
+                        problems.append(
+                            f"metrics[{model}][{target}][{h}] missing {sorted(missing_k)}"
+                        )
     if "dm" in metrics:
         for name, leaf in metrics["dm"].items():
             missing_k = _DM_KEYS - set(leaf)
@@ -174,12 +220,17 @@ def validate_run(run_dir: Path) -> list[str]:
         real = sorted(s for s in seeds if s != -1)
         if len(real) > 1:
             if -1 not in seeds:
-                problems.append(f"{keys}: multi-seed group lacks ensemble (seed == -1) block")
+                problems.append(
+                    f"{keys}: multi-seed group lacks ensemble (seed == -1) block"
+                )
                 continue
-            wide = grp[grp["seed"] != -1].pivot(index="origin_date", columns="seed",
-                                                values="y_pred")
+            wide = grp[grp["seed"] != -1].pivot(
+                index="origin_date", columns="seed", values="y_pred"
+            )
             ens = grp[grp["seed"] == -1].set_index("origin_date")["y_pred"]
             diff = (wide.mean(axis=1) - ens.reindex(wide.index)).abs().max()
             if not (diff <= 1e-12):
-                problems.append(f"{keys}: ensemble block != per-seed mean (max diff {diff})")
+                problems.append(
+                    f"{keys}: ensemble block != per-seed mean (max diff {diff})"
+                )
     return problems

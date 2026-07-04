@@ -28,7 +28,9 @@ class DMResult:
     mean_loss_diff: float
 
 
-def _validate_pair(pred: np.ndarray, actual: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def _validate_pair(
+    pred: np.ndarray, actual: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
     pred = np.asarray(pred, dtype=float)
     actual = np.asarray(actual, dtype=float)
     if pred.ndim != 1 or actual.ndim != 1:
@@ -52,19 +54,25 @@ def _validate_pair(pred: np.ndarray, actual: np.ndarray) -> tuple[np.ndarray, np
 def _unit_guard(pred: np.ndarray, actual: np.ndarray) -> None:
     med_p, med_a = float(np.median(pred)), float(np.median(actual))
     if med_p <= 0:
-        warnings.warn("median prediction is non-positive — check forecast pipeline",
-                      UserWarning, stacklevel=3)
+        warnings.warn(
+            "median prediction is non-positive — check forecast pipeline",
+            UserWarning,
+            stacklevel=3,
+        )
         return
     ratio = max(med_p / med_a, med_a / med_p)
     if ratio > 1e3:
         warnings.warn(
             f"median(pred)/median(actual) ratio {ratio:.1e} exceeds 1e3 — suspected "
             "volatility-vs-variance unit mismatch (QLIKE must be scored in variance space)",
-            UserWarning, stacklevel=3,
+            UserWarning,
+            stacklevel=3,
         )
 
 
-def qlike_series(pred_var: np.ndarray, actual_var: np.ndarray, floor: float) -> np.ndarray:
+def qlike_series(
+    pred_var: np.ndarray, actual_var: np.ndarray, floor: float
+) -> np.ndarray:
     """Per-element QLIKE loss with the pre-specified positive floor applied to predictions."""
     pred, actual = _validate_pair(pred_var, actual_var)
     if not (isinstance(floor, (int, float)) and floor > 0):
@@ -100,8 +108,9 @@ def _hac_variance(d: np.ndarray, lag: int) -> float:
     return s
 
 
-def dm_test(loss_model: np.ndarray, loss_bench: np.ndarray, h: int,
-            hac_lag: int | None = None) -> DMResult:
+def dm_test(
+    loss_model: np.ndarray, loss_bench: np.ndarray, h: int, hac_lag: int | None = None
+) -> DMResult:
     """Diebold–Mariano on a loss differential, HLN small-sample corrected, two-sided.
 
     HAC (Bartlett) variance with truncation lag >= h-1 (hard floor, SPEC E4); when
@@ -124,7 +133,9 @@ def dm_test(loss_model: np.ndarray, loss_bench: np.ndarray, h: int,
         lag = max(h - 1, int(np.floor(4.0 * (n / 100.0) ** (2.0 / 9.0))))
     else:
         if hac_lag < h - 1:
-            raise ValueError(f"hac_lag={hac_lag} < h-1={h - 1}: the HAC lag floor is an invariant")
+            raise ValueError(
+                f"hac_lag={hac_lag} < h-1={h - 1}: the HAC lag floor is an invariant"
+            )
         lag = int(hac_lag)
 
     d = lm - lb

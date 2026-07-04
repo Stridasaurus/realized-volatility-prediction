@@ -40,18 +40,26 @@ def _validate_index(index: pd.DatetimeIndex) -> None:
     if len(index) == 0:
         raise ValueError("index is empty")
     if not index.is_monotonic_increasing:
-        raise ValueError("index must be strictly increasing (found non-monotonic dates)")
+        raise ValueError(
+            "index must be strictly increasing (found non-monotonic dates)"
+        )
     if index.has_duplicates:
         raise ValueError("index must not contain duplicate dates")
 
 
 def _validate_config(cfg: SplitConfig) -> None:
-    b = [pd.Timestamp(cfg.train_start), pd.Timestamp(cfg.val_start),
-         pd.Timestamp(cfg.test_start), pd.Timestamp(cfg.test_end)]
+    b = [
+        pd.Timestamp(cfg.train_start),
+        pd.Timestamp(cfg.val_start),
+        pd.Timestamp(cfg.test_start),
+        pd.Timestamp(cfg.test_end),
+    ]
     if not (b[0] < b[1] < b[2] < b[3]):
         raise ValueError(f"split boundaries must be strictly ordered, got {b}")
     if not isinstance(cfg.embargo_days, int) or cfg.embargo_days <= 0:
-        raise ValueError(f"embargo_days must be a positive int, got {cfg.embargo_days!r}")
+        raise ValueError(
+            f"embargo_days must be a positive int, got {cfg.embargo_days!r}"
+        )
 
 
 def _pos(index: pd.DatetimeIndex, date: str, side: str = "left") -> int:
@@ -72,8 +80,12 @@ def canonical_split(index: pd.DatetimeIndex, cfg: SplitConfig) -> CanonicalSplit
     p_test = _pos(index, cfg.test_start)
     p_end = _pos(index, cfg.test_end, side="right")
 
-    train = index[p_train : p_val - cfg.embargo_days]
-    val = index[p_val : p_test - cfg.embargo_days]
+    # Slice ends computed explicitly: a negative bound would wrap around, silently
+    # producing a non-empty (and wrong) segment instead of the required ValueError (E3).
+    train_end = p_val - cfg.embargo_days
+    val_end = p_test - cfg.embargo_days
+    train = index[p_train:train_end] if train_end > p_train else index[:0]
+    val = index[p_val:val_end] if val_end > p_val else index[:0]
     test = index[p_test:p_end]
     if len(train) == 0 or len(val) == 0 or len(test) == 0:
         raise ValueError(
@@ -88,8 +100,9 @@ def _month_groups(test_idx: pd.DatetimeIndex) -> list[pd.DatetimeIndex]:
     return [test_idx[periods == p] for p in periods.unique()]
 
 
-def retrain_folds(index: pd.DatetimeIndex, cfg: SplitConfig,
-                  window_len: int | None = None) -> list[RetrainFold]:
+def retrain_folds(
+    index: pd.DatetimeIndex, cfg: SplitConfig, window_len: int | None = None
+) -> list[RetrainFold]:
     """Monthly walk-forward retrain folds inside the test region.
 
     Each fold's fit window is exactly ``window_len`` trading days (default: the initial

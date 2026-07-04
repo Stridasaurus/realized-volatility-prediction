@@ -10,5 +10,6 @@ dependencies:
     - optuna==4.9.0
     - pyarrow==24.0.0
     - pytest==9.1.1
+    - ruff==0.15.20
     - torch==2.12.1+cpu
     - yfinance==1.5.1

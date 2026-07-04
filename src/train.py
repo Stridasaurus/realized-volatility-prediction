@@ -26,10 +26,12 @@ _DIVERGE_EPOCHS = 3
 
 @dataclass(frozen=True)
 class TrainResult:
-    preds_per_seed: pd.DataFrame     # index origin dates; one column per seed (variance space)
-    preds_ensemble: pd.Series        # per-origin mean over seeds (the DM object)
-    loss_used: dict                  # {seed: "qlike" | "mse_log"} (worst case across folds)
-    early_stop_epochs: dict          # {(fold_id, seed): epoch}
+    preds_per_seed: (
+        pd.DataFrame
+    )  # index origin dates; one column per seed (variance space)
+    preds_ensemble: pd.Series  # per-origin mean over seeds (the DM object)
+    loss_used: dict  # {seed: "qlike" | "mse_log"} (worst case across folds)
+    early_stop_epochs: dict  # {(fold_id, seed): epoch}
 
 
 class _Diverged(RuntimeError):
@@ -43,8 +45,9 @@ def _seed_everything(seed: int) -> None:
     torch.use_deterministic_algorithms(True)
 
 
-def qlike_loss_torch(pred_log: torch.Tensor, y_level: torch.Tensor,
-                     floor: float) -> torch.Tensor:
+def qlike_loss_torch(
+    pred_log: torch.Tensor, y_level: torch.Tensor, floor: float
+) -> torch.Tensor:
     """QLIKE-with-floor on exp(pred_log) vs the level target — mirrors metrics.qlike."""
     pred = torch.exp(pred_log).clamp_min(floor)
     r = y_level / pred
@@ -54,8 +57,9 @@ def qlike_loss_torch(pred_log: torch.Tensor, y_level: torch.Tensor,
 class WindowDataset(Dataset):
     """(seq_len, n_features) windows ending at each origin — rows <= origin only."""
 
-    def __init__(self, X: np.ndarray, y_log: np.ndarray, positions: np.ndarray,
-                 seq_len: int) -> None:
+    def __init__(
+        self, X: np.ndarray, y_log: np.ndarray, positions: np.ndarray, seq_len: int
+    ) -> None:
         if (positions < seq_len - 1).any():
             raise ValueError("origin position(s) lack a full lookback window")
         self.X = torch.as_tensor(X, dtype=torch.float32)
@@ -76,18 +80,29 @@ def _inner_split(origins: np.ndarray, frac: float) -> tuple[np.ndarray, np.ndarr
     return origins[:-n_val], origins[-n_val:]
 
 
-def _train_one(X: np.ndarray, y_log: np.ndarray, y_level: np.ndarray,
-               fit_pos: np.ndarray, hp: dict, seed: int, floor: float, cfg: dict,
-               loss_name: str) -> SmallLSTM:
+def _train_one(
+    X: np.ndarray,
+    y_log: np.ndarray,
+    y_level: np.ndarray,
+    fit_pos: np.ndarray,
+    hp: dict,
+    seed: int,
+    floor: float,
+    cfg: dict,
+    loss_name: str,
+) -> SmallLSTM:
     _seed_everything(seed)
     model = SmallLSTM(X.shape[1], hp["hidden"], hp["layers"], hp["dropout"])
-    opt = torch.optim.Adam(model.parameters(), lr=hp["lr"], weight_decay=hp["weight_decay"])
+    opt = torch.optim.Adam(
+        model.parameters(), lr=hp["lr"], weight_decay=hp["weight_decay"]
+    )
 
     tr_pos, va_pos = _inner_split(fit_pos, cfg["model"]["inner_val_frac"])
     ds = WindowDataset(X, y_log, tr_pos, hp["seq_len"])
     gen = torch.Generator().manual_seed(seed)
-    dl = DataLoader(ds, batch_size=hp["batch_size"], shuffle=True, generator=gen,
-                    num_workers=0)
+    dl = DataLoader(
+        ds, batch_size=hp["batch_size"], shuffle=True, generator=gen, num_workers=0
+    )
     va_ds = WindowDataset(X, y_log, va_pos, hp["seq_len"])
     xv = torch.stack([va_ds[i][0] for i in range(len(va_ds))])
     yv_log = torch.as_tensor(y_log[va_pos], dtype=torch.float32)
@@ -111,7 +126,9 @@ def _train_one(X: np.ndarray, y_log: np.ndarray, y_level: np.ndarray,
             if not torch.isfinite(loss):
                 raise _Diverged(f"non-finite training loss at epoch {epoch}")
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), cfg["model"]["grad_clip"])
+            torch.nn.utils.clip_grad_norm_(
+                model.parameters(), cfg["model"]["grad_clip"]
+            )
             opt.step()
 
         model.eval()
@@ -137,8 +154,13 @@ def _train_one(X: np.ndarray, y_log: np.ndarray, y_level: np.ndarray,
     return model
 
 
-def run_walk_forward(features: FeatureSet, folds: list[RetrainFold], hp: dict,
-                     seeds: list[int], cfg: dict) -> TrainResult:
+def run_walk_forward(
+    features: FeatureSet,
+    folds: list[RetrainFold],
+    hp: dict,
+    seeds: list[int],
+    cfg: dict,
+) -> TrainResult:
     if len(set(seeds)) != len(seeds):
         raise ValueError("duplicate seeds")
     floor = cfg["floors"][features.y.name.split("_h")[0].removeprefix("y_")]
@@ -172,14 +194,19 @@ def run_walk_forward(features: FeatureSet, folds: list[RetrainFold], hp: dict,
 
         for seed in seeds:
             try:
-                model = _train_one(Xs, y_log, y_lvl, fit_pos, hp, seed, floor, cfg,
-                                   loss_used[seed])
+                model = _train_one(
+                    Xs, y_log, y_lvl, fit_pos, hp, seed, floor, cfg, loss_used[seed]
+                )
             except _Diverged as e:
-                warnings.warn(f"fold {fold_id} seed {seed}: {e} — falling back to "
-                              "MSE-of-log loss", UserWarning)
+                warnings.warn(
+                    f"fold {fold_id} seed {seed}: {e} — falling back to "
+                    "MSE-of-log loss",
+                    UserWarning,
+                )
                 loss_used[seed] = "mse_log"
-                model = _train_one(Xs, y_log, y_lvl, fit_pos, hp, seed, floor, cfg,
-                                   "mse_log")
+                model = _train_one(
+                    Xs, y_log, y_lvl, fit_pos, hp, seed, floor, cfg, "mse_log"
+                )
             early_stop[(fold_id, seed)] = model._early_stop_epoch
             ds = WindowDataset(Xs, y_log, test_pos, seq_len)
             xb = torch.stack([ds[i][0] for i in range(len(ds))])
@@ -226,8 +253,17 @@ def tune(features: FeatureSet, split: CanonicalSplit, cfg: dict, n_trials: int) 
         y_log = features.y_log.to_numpy(dtype=np.float64)
         y_lvl = features.y.to_numpy(dtype=np.float64)
         try:
-            model = _train_one(Xs, y_log, y_lvl, fit_pos, hp, seed=0, floor=floor,
-                               cfg=cfg, loss_name="qlike")
+            model = _train_one(
+                Xs,
+                y_log,
+                y_lvl,
+                fit_pos,
+                hp,
+                seed=0,
+                floor=floor,
+                cfg=cfg,
+                loss_name="qlike",
+            )
         except _Diverged:
             return float("inf")
         vp = val_pos[val_pos >= hp["seq_len"] - 1]
@@ -235,8 +271,11 @@ def tune(features: FeatureSet, split: CanonicalSplit, cfg: dict, n_trials: int) 
         xb = torch.stack([ds[i][0] for i in range(len(ds))])
         with torch.no_grad():
             pred_log = model(xb)
-        val = float(qlike_loss_torch(pred_log, torch.as_tensor(y_lvl[vp],
-                    dtype=torch.float32), floor))
+        val = float(
+            qlike_loss_torch(
+                pred_log, torch.as_tensor(y_lvl[vp], dtype=torch.float32), floor
+            )
+        )
         return val
 
     sampler = optuna.samplers.TPESampler(seed=0)

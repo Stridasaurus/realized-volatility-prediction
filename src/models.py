@@ -13,7 +13,9 @@ from torch import nn
 class SmallLSTM(nn.Module):
     """LSTM over a lookback window of feature vectors -> scalar log-target prediction."""
 
-    def __init__(self, n_features: int, hidden: int, layers: int, dropout: float) -> None:
+    def __init__(
+        self, n_features: int, hidden: int, layers: int, dropout: float
+    ) -> None:
         super().__init__()
         self.lstm = nn.LSTM(
             input_size=n_features,
