@@ -18,4 +18,11 @@ rationale are in `MANIFESTO.md` (v3, canonical) — read it before doing any wor
 
 ## Status
 
-Manifesto landed; no `SPEC.md`s or `src/` modules written yet.
+Stage 0 complete: all 7 `specs/<module>/{SPEC.md,design.md}` pairs landed; `src/`
+engine implemented and tested (116 pytests, `python -m pytest`); data snapshot frozen
+(`scripts/freeze_snapshot.py`, manifest + SHA-256, floors in config, S8 calibration
+passes); classical field scored on the frozen splits, both targets/horizons
+(`scripts/run_stage0.py`, artifacts committed under `results/stage0_classical/`).
+HAR tops every block; GARCH statistically indistinguishable from HAR on TV.
+Next: Stage 1 (leak-safe Optuna tuning on TV, then RV-only net vs HAR).
+Pending: `docs/AMENDMENTS-PENDING.md` — three manifesto amendments to ratify.
