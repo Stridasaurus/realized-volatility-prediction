@@ -1,0 +1,108 @@
+{
+  "calibration_band": [
+    0.8,
+    1.25
+  ],
+  "ewma": {
+    "fallback_lambda": 0.94,
+    "lambda_start": 0.8,
+    "lambda_step": 0.005,
+    "lambda_stop": 0.99,
+    "warmup_min_obs": 60
+  },
+  "experiment": "stage0_classical",
+  "floors": {
+    "rv_oc": 2.606573e-06,
+    "rv_tv": 3.667052e-06
+  },
+  "horizons": [
+    1,
+    5
+  ],
+  "lookbacks": {
+    "har_monthly_lag": 22,
+    "max_aux_window": 22
+  },
+  "model": {
+    "family": "lstm",
+    "grad_clip": 1.0,
+    "hp": {
+      "batch_size": 64,
+      "dropout": 0.1,
+      "hidden": 32,
+      "layers": 1,
+      "lr": 0.001,
+      "seq_len": 22,
+      "weight_decay": 0.0
+    },
+    "inner_val_frac": 0.15,
+    "max_epochs": 200,
+    "patience": 10,
+    "seq_len_max": 66,
+    "use_cuda": false
+  },
+  "models": [
+    "persistence",
+    "ewma",
+    "ar1",
+    "har",
+    "garch"
+  ],
+  "n_folds": 78,
+  "project": "realized-volatility-prediction",
+  "provenance": {
+    "git_rev": "7f4296481a70dd775cec9663d35fbe7a7f7798e8",
+    "saved_utc": "2026-07-04T00:59:51.131492+00:00",
+    "versions": {
+      "arch": "8.0.0",
+      "numpy": "2.4.6",
+      "optuna": "4.9.0",
+      "pandas": "3.0.3",
+      "statsmodels": "0.14.6",
+      "torch": "2.12.1+cpu"
+    }
+  },
+  "seeds": {
+    "dev": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "headline": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ]
+  },
+  "snapshot": {
+    "end_date": "2026-06-30",
+    "manifest": "data/snapshot_manifest.json"
+  },
+  "snapshot_files": {
+    "raw/spy_ohlcv.csv": "be55908fc9a1be404e4abc61b3aedcec871f44fac59518d35c3535fdddde2aa1",
+    "raw/vix_ohlc.csv": "257945c7827a7a418bad959b929f9ce9369e31e687597e1fd37affdd55831a9f"
+  },
+  "splits": {
+    "embargo_days": 66,
+    "retrain_cadence": "monthly",
+    "test_end": "2026-06-30",
+    "test_start": "2020-01-01",
+    "train_start": "2005-01-01",
+    "val_start": "2018-01-01",
+    "window_len": null
+  },
+  "targets": {
+    "primary": "rv_tv",
+    "secondary": "rv_oc"
+  },
+  "window_len_resolved": 3167
+}
