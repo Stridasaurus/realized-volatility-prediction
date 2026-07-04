@@ -1,0 +1,14 @@
+{
+  "adjustment_basis": "adjusted",
+  "end_date": "2026-06-30",
+  "files": {
+    "raw/spy_ohlcv.csv": "be55908fc9a1be404e4abc61b3aedcec871f44fac59518d35c3535fdddde2aa1",
+    "raw/vix_ohlc.csv": "257945c7827a7a418bad959b929f9ce9369e31e687597e1fd37affdd55831a9f"
+  },
+  "notes": "SPY source is a manual Stooq export (spy_us_d.csv) from a logged-in browser session (Stooq login-gates programmatic CSV export as of 2026-07); all OHLC columns are dividend/split adjusted, so adj_close == close by construction.",
+  "retrieved_utc": "2026-07-04T00:55:25.088264+00:00",
+  "sources": {
+    "spy": "https://stooq.com/q/d/?s=spy.us (manual export)",
+    "vix": "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
+  }
+}

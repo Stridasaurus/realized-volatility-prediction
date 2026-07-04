@@ -157,8 +157,9 @@ def test_s3_missing_ensemble_block_caught(tmp_path, config, preds, metrics):
 def test_s4_embargo_auto_resolves_to_max_lookback(tmp_path):
     cfg = yaml.safe_load((REPO_ROOT / "configs" / "default.yaml").read_text())
     assert cfg["splits"]["embargo_days"] == "auto"
-    with pytest.warns(UserWarning):  # floors unset until freeze
-        resolved = io_mod.load_config()
+    resolved = io_mod.load_config()
+    assert resolved["floors"]["rv_tv"] > 0  # floors written at freeze
+    assert resolved["floors"]["rv_oc"] > 0
     assert resolved["splits"]["embargo_days"] == max(
         cfg["lookbacks"]["har_monthly_lag"],
         cfg["model"]["seq_len_max"],

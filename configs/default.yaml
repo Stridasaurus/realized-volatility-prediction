@@ -26,8 +26,8 @@ targets:
 horizons: [1, 5]
 
 floors:
-  rv_tv: null
-  rv_oc: null
+  rv_tv: 3.667052e-06
+  rv_oc: 2.606573e-06
 
 calibration_band: [0.8, 1.25]
 
