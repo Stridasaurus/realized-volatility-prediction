@@ -1,0 +1,9 @@
+# Colab already ships numpy/pandas/scipy/torch — deliberately unpinned here so this
+# install doesn't force a reinstall of Colab's preinstalled stack (manifesto s10:
+# "matched to Colab's current environment at setup"). These are the only packages
+# Colab doesn't already have. Once a Colab run succeeds, pin exact versions by
+# running `pip freeze` there and committing the result.
+arch
+optuna
+statsmodels
+pyarrow
