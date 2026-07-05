@@ -14,7 +14,7 @@ from src.features import (
     leakage_probe,
     make_labels,
 )
-from tests.conftest import make_snapshot
+from conftest import make_snapshot
 
 
 @pytest.fixture(scope="module")

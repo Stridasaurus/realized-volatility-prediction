@@ -23,7 +23,7 @@ from src.data import (
     rogers_satchell,
     trading_calendar,
 )
-from tests.conftest import make_ohlc, write_snapshot_dir
+from conftest import make_ohlc, write_snapshot_dir
 
 SNAPSHOT_FROZEN = (DATA_DIR / "snapshot_manifest.json").exists()
 needs_snapshot = pytest.mark.skipif(
