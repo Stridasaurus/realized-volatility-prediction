@@ -186,7 +186,8 @@ def test_e4_hac_lag_below_floor_rejected():
 
 
 def test_e5_negative_predictions_floored_not_raised():
-    res = qlike(np.array([-5.0, 1.0]), np.array([1.0, 1.0]), floor=0.5)
+    with pytest.warns(UserWarning, match="median prediction is non-positive"):
+        res = qlike(np.array([-5.0, 1.0]), np.array([1.0, 1.0]), floor=0.5)
     assert res.bind_rate == pytest.approx(0.5)
     assert np.isfinite(res.value)
 
