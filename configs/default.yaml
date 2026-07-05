@@ -41,14 +41,14 @@ ewma:
 model:
   family: lstm
   seq_len_max: 66           # Optuna search upper bound; feeds embargo auto-resolution
-  hp:                       # dev defaults; frozen HP set replaces these after Stage-1 tuning
-    hidden: 32
+  hp:                       # frozen Stage-1 HP set (results/stage1_tune/20260705T220518Z_hp.json)
+    hidden: 100
     layers: 1
-    dropout: 0.1
-    lr: 0.001
-    weight_decay: 0.0
+    dropout: 0.09616469799411939
+    lr: 0.000359971008979366
+    weight_decay: 4.8008069774042994e-05
     batch_size: 64
-    seq_len: 22
+    seq_len: 28
   max_epochs: 200
   patience: 10
   inner_val_frac: 0.15

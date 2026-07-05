@@ -1,0 +1,16 @@
+{
+  "best_hp": {
+    "batch_size": 64,
+    "dropout": 0.09616469799411939,
+    "hidden": 100,
+    "layers": 1,
+    "lr": 0.000359971008979366,
+    "seq_len": 28,
+    "weight_decay": 4.8008069774042994e-05
+  },
+  "horizon_reused": 5,
+  "horizon_tuned": 1,
+  "n_trials": 50,
+  "note": "frozen once on h=1/TV and reused unchanged for h=5, per specs/model-harness/SPEC.md s10 (pre-registered before Stage 1).",
+  "target": "rv_tv"
+}
