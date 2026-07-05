@@ -15,6 +15,9 @@ rationale are in `MANIFESTO.md` (v3, canonical) — read it before doing any wor
 - `environment.yml` auto-regenerates on commit via `.githooks/pre-commit`
   (`git config core.hooksPath .githooks` already set on this clone — re-run on any
   other machine after cloning, since git doesn't transfer hook activation).
+- Colab: open via the badge in `README.md` (`notebooks/colab_bootstrap.ipynb`), which
+  clones this repo, installs `requirements.txt` (unpinned deltas only — Colab already
+  ships numpy/pandas/torch), then shells out to `scripts/run_stage1.py`.
 
 ## Status
 
