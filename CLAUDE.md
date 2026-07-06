@@ -28,4 +28,20 @@ passes); classical field scored on the frozen splits, both targets/horizons
 (`scripts/run_stage0.py`, artifacts committed under `results/stage0_classical/`).
 HAR tops every block; GARCH statistically indistinguishable from HAR on TV.
 Manifesto amendments ratified 2026-07-03 (manual Stooq acquisition, Tier 1/2/3 menu,
-log-HAR). Next: Stage 1 (leak-safe Optuna tuning on TV, then RV-only net vs HAR).
+log-HAR).
+
+Stage 1 complete (2026-07-05/06): real 50-trial Optuna tune frozen into
+`configs/default.yaml` (`results/stage1_tune/`); RV-only LSTM vs HAR headline compare
+(`scripts/run_stage1.py compare`, `results/stage1_net_vs_har/`) found **no edge** on
+either TV horizon (p=0.585 h=1, p=0.667 h=5) — a legitimate null result.
+
+Stage 2 complete (2026-07-06, `scripts/run_stage2.py`): adding Tier 1+2+3 auxiliary
+features (SPY return/volume, VIX-derived) reverses Stage 1's null. The RV+aux LSTM
+beats HAR **decisively** on every target/horizon tested — TV h=1 (p=4.9e-08), TV h=5
+(p=1.9e-04), OC h=1 (p=3.7e-07), OC h=5 (p=9.7e-05), all with 100% seed agreement
+(`results/stage2_aux_compare/`, `results/stage2_final_oc/`). It also beats the RV-only
+LSTM directly, so the edge traces to the auxiliary features, not the architecture. A
+window-length decay curve (`results/stage2_decay/`) shows the net needs most of the
+~12.6y frozen training window to be competitive with HAR at all — with only ~2-5y of
+history HAR wins outright. This is the grade-ready cut (manifesto §5); Stage 3
+(portfolio extensions) is optional next work, not required for the course deliverable.
