@@ -1,0 +1,78 @@
+{
+  "dm": {
+    "lstm_rvonly_vs_har_rv_tv_h1": {
+      "hac_lag": 7,
+      "mean_loss_diff": -0.003942077290340264,
+      "n": 1630,
+      "p_value": 0.5852266722244113,
+      "sign_agreement_frac": 0.6,
+      "stat": -0.5458749057000446
+    },
+    "lstm_rvonly_vs_har_rv_tv_h5": {
+      "hac_lag": 7,
+      "mean_loss_diff": 0.003998918446869899,
+      "n": 1626,
+      "p_value": 0.6665734302769368,
+      "sign_agreement_frac": 0.9,
+      "stat": 0.4309341166737144
+    }
+  },
+  "models": {
+    "har": {
+      "rv_tv": {
+        "1": {
+          "bind_rate": 0.0,
+          "n": 1630,
+          "qlike": 0.476581104893981,
+          "rmse": 0.0005137445651045552
+        },
+        "5": {
+          "bind_rate": 0.0,
+          "n": 1626,
+          "qlike": 0.2877131726068334,
+          "rmse": 0.00040221522112940064
+        }
+      }
+    },
+    "lstm_rvonly": {
+      "rv_tv": {
+        "1": {
+          "bind_rate": 0.0,
+          "loss_used": {
+            "0": "qlike",
+            "1": "qlike",
+            "2": "qlike",
+            "3": "qlike",
+            "4": "qlike",
+            "5": "qlike",
+            "6": "qlike",
+            "7": "qlike",
+            "8": "qlike",
+            "9": "qlike"
+          },
+          "n": 1630,
+          "qlike": 0.4726390276036407,
+          "rmse": 0.0005189392444532314
+        },
+        "5": {
+          "bind_rate": 0.0,
+          "loss_used": {
+            "0": "qlike",
+            "1": "qlike",
+            "2": "qlike",
+            "3": "qlike",
+            "4": "qlike",
+            "5": "qlike",
+            "6": "qlike",
+            "7": "qlike",
+            "8": "qlike",
+            "9": "qlike"
+          },
+          "n": 1626,
+          "qlike": 0.29171209105370327,
+          "rmse": 0.00041129175288875854
+        }
+      }
+    }
+  }
+}
