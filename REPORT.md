@@ -14,7 +14,7 @@ We test whether a small LSTM can out-forecast the HAR model on daily SPY range-b
 
 ## 1. Research questions
 
-Volatility is highly forecastable, and HAR — three OLS terms on daily, weekly, and monthly lagged volatility — is famously hard to beat. That reputation was earned on high-frequency realized variance; this project is constrained to daily OHLC data, so its targets are daily *range-based* variance proxies, a distinct estimator family. "Does HAR's dominance transfer?" is untestable by any single project (dominance is a claim about the whole competitor field of the literature), so the questions were scoped to what this design can actually answer:
+Volatility is highly forecastable, and HAR — three OLS terms on daily, weekly, and monthly lagged volatility — is famously hard to beat (Corsi, 2009). That reputation was earned on high-frequency realized variance; this project is constrained to daily OHLC data, so its targets are daily *range-based* variance proxies, a distinct estimator family. "Does HAR's dominance transfer?" is untestable by any single project (dominance is a claim about the whole competitor field of the literature), so the questions were scoped to what this design can actually answer:
 
 1. **Is HAR the strongest classical model here**, against a pre-specified field — persistence, EWMA, AR(1) on log-target, GARCH(1,1)?
 2. **Can a small LSTM add signal beyond HAR?**
@@ -28,8 +28,8 @@ A single model family only ever establishes a **lower bound** on extractable sig
 
 **Targets.** Both are daily *variances* (never volatilities), modeled in log space and exponentiated back for scoring:
 
-- **TV (primary), total daily variance:** per-day Rogers–Satchell + squared overnight (close-to-open) return. Approximately conditionally unbiased for *total* daily variance — the Patton (2011) property that licenses QLIKE ranking and DM inference for it. Not adjustment-invariant (the overnight leg crosses ex-dividend boundaries), hence the adjusted basis requirement.
-- **OC (secondary), open-to-close variance:** per-day Garman–Klass. Conditionally unbiased for the *trading session* only; every OC claim in this report is scoped to that object and never extended to total daily volatility.
+- **TV (primary), total daily variance:** per-day Rogers–Satchell (Rogers & Satchell, 1991) + squared overnight (close-to-open) return. Approximately conditionally unbiased for *total* daily variance — the Patton (2011) property that licenses QLIKE ranking and DM inference for it. Not adjustment-invariant (the overnight leg crosses ex-dividend boundaries), hence the adjusted basis requirement.
+- **OC (secondary), open-to-close variance:** per-day Garman–Klass (Garman & Klass, 1980). Conditionally unbiased for the *trading session* only; every OC claim in this report is scoped to that object and never extended to total daily volatility.
 
 Calibration diagnostics (S8) checked both proxies against squared-return benchmarks on the train span and passed within the pre-set tolerance band [0.8, 1.25].
 
@@ -37,19 +37,19 @@ Calibration diagnostics (S8) checked both proxies against squared-return benchma
 
 ### 3.1 Splits, retraining, and leakage control
 
-Chronological three-way split: **train 2005–2017, validation 2018–2019, test 2020 → 2026-06-30**, with an embargo gap auto-resolved to the maximum model lookback (66 trading days) so no lookback window straddles a boundary. Inside the test region, models are re-fit on a **monthly walk-forward** cadence (78 folds) using a **fixed-length rolling window** equal to the initial train span (3,167 trading days) — a finite-memory scheme that keeps re-estimated forecast comparisons within the Giacomini–White framework. Tuning touched train/validation only; the test region was touched exactly once per pre-registered experiment.
+Chronological three-way split: **train 2005–2017, validation 2018–2019, test 2020 → 2026-06-30**, with an embargo gap auto-resolved to the maximum model lookback (66 trading days) so no lookback window straddles a boundary. Inside the test region, models are re-fit on a **monthly walk-forward** cadence (78 folds) using a **fixed-length rolling window** equal to the initial train span (3,167 trading days) — a finite-memory scheme that keeps re-estimated forecast comparisons within the Giacomini–White framework (Giacomini & White, 2006). Tuning touched train/validation only; the test region was touched exactly once per pre-registered experiment.
 
 Leakage is controlled by construction and by test: every feature at day *t* uses only information known at the close of *t* (verified by a future-perturbation test: perturbing data after *t* must leave the day-*t* feature unchanged); scalers are fit on training indices only; the series is never shuffled. All shared logic — one splitter, one QLIKE/RMSE/DM implementation, both target constructions — lives in a single tested library (`src/`, 116 passing tests), so no two experiments can disagree on definitions.
 
 ### 3.2 Models
 
-**Classical field** (research question 1): persistence (today's value; at h=5, the trailing 5-day mean), EWMA on the lagged target (decay fit on train), AR(1) on the log-target, **HAR** fit on the log-target with the lognormal back-transform (pre-registered; Corsi's level-space HAR is not fielded), and GARCH(1,1) fit on close-to-close returns. GARCH's forecast object is *total* return variance, so it is properly scored against TV; where shown against OC the object mismatch is flagged in the table.
+**Classical field** (research question 1): persistence (today's value; at h=5, the trailing 5-day mean), EWMA on the lagged target (decay fit on train; the RiskMetrics EWMA convention, J.P. Morgan/Reuters, 1996), AR(1) on the log-target, **HAR** fit on the log-target with the lognormal back-transform (pre-registered; Corsi's (2009) level-space HAR is not fielded), and GARCH(1,1) (Bollerslev, 1986) fit on close-to-close returns. GARCH's forecast object is *total* return variance, so it is properly scored against TV; where shown against OC the object mismatch is flagged in the table.
 
-**Network:** a deliberately small LSTM (frozen family; the enemy at this data scale is overfitting, not lack of capacity), trained on the QLIKE-with-floor loss directly. The MSE-of-log fallback never triggered — all 10 seeds trained on QLIKE in every experiment. Training is CPU-only with full seeding for determinism.
+**Network:** a deliberately small LSTM (Hochreiter & Schmidhuber, 1997; frozen family — the enemy at this data scale is overfitting, not lack of capacity), trained on the QLIKE-with-floor loss directly. The MSE-of-log fallback never triggered — all 10 seeds trained on QLIKE in every experiment. Training is CPU-only with full seeding for determinism.
 
 ### 3.3 Tuning and frozen controls
 
-Hyperparameters were tuned **once**, with a 50-trial Optuna search on the TV target at h=1, using train/validation data only, and then frozen (best validation QLIKE 0.4027):
+Hyperparameters were tuned **once**, with a 50-trial Optuna (Akiba et al., 2019) search on the TV target at h=1, using train/validation data only, and then frozen (best validation QLIKE 0.4027):
 
 | hidden | layers | dropout | lr | weight decay | batch | seq. length |
 |---|---|---|---|---|---|---|
@@ -60,11 +60,11 @@ Two reuse decisions are design choices and should be read as such. **First, the 
 ### 3.4 Feature sets
 
 - **RV-only:** lagged log-target (lags 0–21) plus 5-day and 22-day log aggregates — the same information HAR sees, in flexible form.
-- **RV+aux:** the RV-only set plus a pre-registered auxiliary menu, frozen before any Stage-2 test contact — **Tier 2:** SPY daily return, |return|, overnight return, volume ratio; **Tier 3:** log VIX, VIX change, VIX-implied daily variance. Each feature is close-of-day-available and never revised.
+- **RV+aux:** the RV-only set plus a pre-registered auxiliary menu, frozen before any Stage-2 test contact — **Tier 2:** SPY daily return, |return|, overnight return, volume ratio; **Tier 3:** log VIX, VIX change, VIX-implied daily variance (VIX defined per the Cboe (n.d.) methodology). Each feature is close-of-day-available and never revised.
 
 ### 3.5 Evaluation and inference
 
-**QLIKE** in variance space is primary (it penalizes under-forecasting risk, the costly direction, and is ranking-robust to proxy noise under conditional unbiasedness); **RMSE** is reported alongside. Predictions are floored at a pre-specified positive value fixed at data freeze (TV 3.667×10⁻⁶, OC 2.607×10⁻⁶) and the floor bind-rate is logged every run. Headline numbers use **10 seeds**; the pre-specified object of inference is the **seed-ensemble mean** prediction sequence. Significance uses **Diebold–Mariano with the Harvey–Leybourne–Newbold small-sample correction** and HAC (Bartlett) variance with lag 7 ≥ h−1 (the h=5 target is a 5-day average, so daily loss differentials are serially correlated by construction). A claimed edge requires DM **p < 0.05 on the ensemble mean *and* a same-sign per-seed mean loss differential in ≥ 80% of seeds** (criterion S6). All DM p-values are reported together — never a curated subset.
+**QLIKE** in variance space is primary (it penalizes under-forecasting risk, the costly direction, and is ranking-robust to proxy noise under conditional unbiasedness); **RMSE** is reported alongside. Predictions are floored at a pre-specified positive value fixed at data freeze (TV 3.667×10⁻⁶, OC 2.607×10⁻⁶) and the floor bind-rate is logged every run. Headline numbers use **10 seeds**; the pre-specified object of inference is the **seed-ensemble mean** prediction sequence. Significance uses **Diebold–Mariano** (Diebold & Mariano, 1995) **with the Harvey–Leybourne–Newbold small-sample correction** (Harvey, Leybourne, & Newbold, 1997) and HAC (Bartlett) variance with lag 7 ≥ h−1 (the h=5 target is a 5-day average, so daily loss differentials are serially correlated by construction). A claimed edge requires DM **p < 0.05 on the ensemble mean *and* a same-sign per-seed mean loss differential in ≥ 80% of seeds** (criterion S6). All DM p-values are reported together — never a curated subset.
 
 ## 4. Results
 
@@ -166,3 +166,29 @@ Everything replays. The repo contains the frozen snapshot (SHA-256 manifest, pin
 ## 7. Conclusion
 
 On daily SPY range-based volatility, HAR is confirmed as the bar to beat among classical models, and a small LSTM given only volatility history cannot beat it — a null result this protocol was equally prepared to publish. The same network given a small, pre-registered set of market-state features (VIX level and change, returns, volume) beats HAR everywhere it was tested — both targets, both horizons, every regime — by 17–19% QLIKE with p ≤ 1.9×10⁻⁴ and unanimous seed agreement, and beats its own RV-only twin just as decisively. The precise claim, stated as a floor: **on these targets, there is economically meaningful predictive information beyond HAR, it is at least 17% of QLIKE, and it lives in the auxiliary market-state features — not in the deep architecture, which on its own adds nothing.**
+
+## References
+
+Akiba, T., Sano, S., Yanase, T., Ohta, T., & Koyama, M. (2019). Optuna: A next-generation hyperparameter optimization framework. In *Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery & Data Mining* (pp. 2623–2631). https://doi.org/10.1145/3292500.3330701
+
+Bollerslev, T. (1986). Generalized autoregressive conditional heteroskedasticity. *Journal of Econometrics*, 31(3), 307–327. https://doi.org/10.1016/0304-4076(86)90063-1
+
+Cboe Global Markets. (n.d.). *Cboe Volatility Index (VIX) mathematics methodology*. https://cdn.cboe.com/resources/indices/Cboe_Volatility_Index_Mathematics_Methodology.pdf
+
+Corsi, F. (2009). A simple approximate long-memory model of realized volatility. *Journal of Financial Econometrics*, 7(2), 174–196. https://doi.org/10.1093/jjfinec/nbp001
+
+Diebold, F. X., & Mariano, R. S. (1995). Comparing predictive accuracy. *Journal of Business & Economic Statistics*, 13(3), 253–263. https://doi.org/10.1080/07350015.1995.10524599
+
+Garman, M. B., & Klass, M. J. (1980). On the estimation of security price volatilities from historical data. *Journal of Business*, 53(1), 67–78.
+
+Giacomini, R., & White, H. (2006). Tests of conditional predictive ability. *Econometrica*, 74(6), 1545–1578. https://doi.org/10.1111/j.1468-0262.2006.00718.x
+
+Harvey, D., Leybourne, S., & Newbold, P. (1997). Testing the equality of prediction mean squared errors. *International Journal of Forecasting*, 13(2), 281–291. https://doi.org/10.1016/S0169-2070(96)00719-4
+
+Hochreiter, S., & Schmidhuber, J. (1997). Long short-term memory. *Neural Computation*, 9(8), 1735–1780. https://doi.org/10.1162/neco.1997.9.8.1735
+
+J.P. Morgan/Reuters. (1996). *RiskMetrics — Technical document* (4th ed.). New York: J.P. Morgan/Reuters. https://www.msci.com/documents/10199/5915b101-4206-4ba0-aee2-3449d5c7e95a
+
+Patton, A. J. (2011). Volatility forecast comparison using imperfect volatility proxies. *Journal of Econometrics*, 160(1), 246–256. https://doi.org/10.1016/j.jeconom.2010.03.034
+
+Rogers, L. C. G., & Satchell, S. E. (1991). Estimating variance from high, low and closing prices. *Annals of Applied Probability*, 1(4), 504–512. https://doi.org/10.1214/aoap/1177005835
