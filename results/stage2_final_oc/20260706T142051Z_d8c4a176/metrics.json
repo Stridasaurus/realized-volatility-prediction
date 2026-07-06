@@ -1,0 +1,78 @@
+{
+  "dm": {
+    "lstm_aux_vs_har_rv_oc_h1": {
+      "hac_lag": 7,
+      "mean_loss_diff": -0.06443112253633317,
+      "n": 1630,
+      "p_value": 3.676709365851849e-07,
+      "sign_agreement_frac": 1.0,
+      "stat": -5.1060108245095
+    },
+    "lstm_aux_vs_har_rv_oc_h5": {
+      "hac_lag": 7,
+      "mean_loss_diff": -0.05052639484534408,
+      "n": 1626,
+      "p_value": 9.735028632129605e-05,
+      "sign_agreement_frac": 1.0,
+      "stat": -3.90682962107089
+    }
+  },
+  "models": {
+    "har": {
+      "rv_oc": {
+        "1": {
+          "bind_rate": 0.0,
+          "n": 1630,
+          "qlike": 0.3804733109944432,
+          "rmse": 0.00017652305349689305
+        },
+        "5": {
+          "bind_rate": 0.0,
+          "n": 1626,
+          "qlike": 0.2676798854006645,
+          "rmse": 0.00015360120858846931
+        }
+      }
+    },
+    "lstm_aux": {
+      "rv_oc": {
+        "1": {
+          "bind_rate": 0.0,
+          "loss_used": {
+            "0": "qlike",
+            "1": "qlike",
+            "2": "qlike",
+            "3": "qlike",
+            "4": "qlike",
+            "5": "qlike",
+            "6": "qlike",
+            "7": "qlike",
+            "8": "qlike",
+            "9": "qlike"
+          },
+          "n": 1630,
+          "qlike": 0.3160421884581101,
+          "rmse": 0.00017599088158973318
+        },
+        "5": {
+          "bind_rate": 0.0,
+          "loss_used": {
+            "0": "qlike",
+            "1": "qlike",
+            "2": "qlike",
+            "3": "qlike",
+            "4": "qlike",
+            "5": "qlike",
+            "6": "qlike",
+            "7": "qlike",
+            "8": "qlike",
+            "9": "qlike"
+          },
+          "n": 1626,
+          "qlike": 0.2171534905553204,
+          "rmse": 0.00016448056072709992
+        }
+      }
+    }
+  }
+}

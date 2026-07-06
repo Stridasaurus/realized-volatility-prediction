@@ -1,0 +1,116 @@
+{
+  "dm": {
+    "lstm_rvonly_wl1260_vs_har_wl1260_rv_tv_h1": {
+      "hac_lag": 7,
+      "mean_loss_diff": 0.02069343547216421,
+      "n": 1630,
+      "p_value": 0.08449501684626903,
+      "sign_agreement_frac": 1.0,
+      "stat": 1.7262335184528363
+    },
+    "lstm_rvonly_wl3167_vs_har_wl3167_rv_tv_h1": {
+      "hac_lag": 7,
+      "mean_loss_diff": -0.004803721106624276,
+      "n": 1630,
+      "p_value": 0.49909864793008585,
+      "sign_agreement_frac": 0.8,
+      "stat": -0.6760597964136374
+    },
+    "lstm_rvonly_wl504_vs_har_wl504_rv_tv_h1": {
+      "hac_lag": 7,
+      "mean_loss_diff": 0.11267687955508765,
+      "n": 1630,
+      "p_value": 7.590589110595403e-07,
+      "sign_agreement_frac": 1.0,
+      "stat": 4.964998928997182
+    }
+  },
+  "models": {
+    "har_wl1260": {
+      "rv_tv": {
+        "1": {
+          "bind_rate": 0.0,
+          "n": 1630,
+          "qlike": 0.4813460862334922,
+          "rmse": 0.0005265369517124228
+        }
+      }
+    },
+    "har_wl3167": {
+      "rv_tv": {
+        "1": {
+          "bind_rate": 0.0,
+          "n": 1630,
+          "qlike": 0.476581104893981,
+          "rmse": 0.0005137445651045552
+        }
+      }
+    },
+    "har_wl504": {
+      "rv_tv": {
+        "1": {
+          "bind_rate": 0.0,
+          "n": 1630,
+          "qlike": 0.48508088210233846,
+          "rmse": 0.0005157893005930887
+        }
+      }
+    },
+    "lstm_rvonly_wl1260": {
+      "rv_tv": {
+        "1": {
+          "bind_rate": 0.0,
+          "loss_used": {
+            "0": "qlike",
+            "1": "qlike",
+            "2": "qlike",
+            "3": "qlike",
+            "4": "qlike"
+          },
+          "n": 1630,
+          "qlike": 0.5020395217056564,
+          "rmse": 0.0007724958955603058
+        }
+      }
+    },
+    "lstm_rvonly_wl3167": {
+      "rv_tv": {
+        "1": {
+          "bind_rate": 0.0,
+          "loss_used": {
+            "0": "qlike",
+            "1": "qlike",
+            "2": "qlike",
+            "3": "qlike",
+            "4": "qlike"
+          },
+          "n": 1630,
+          "qlike": 0.47177738378735673,
+          "rmse": 0.0005216110939743438
+        }
+      }
+    },
+    "lstm_rvonly_wl504": {
+      "rv_tv": {
+        "1": {
+          "bind_rate": 0.0,
+          "loss_used": {
+            "0": "qlike",
+            "1": "qlike",
+            "2": "qlike",
+            "3": "qlike",
+            "4": "qlike"
+          },
+          "n": 1630,
+          "qlike": 0.5977577616574261,
+          "rmse": 0.0007991607676465325
+        }
+      }
+    }
+  },
+  "window_lengths_td": {
+    "wl1260": 1260,
+    "wl3167": 3167,
+    "wl504": 504
+  }
+}
