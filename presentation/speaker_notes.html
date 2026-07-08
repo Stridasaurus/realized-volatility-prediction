@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Speaker Notes — Can a Small LSTM Beat HAR?</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --ink:#0b0e13;
+    --panel:#141a24;
+    --panel-2:#1b2330;
+    --line:#28323f;
+    --text-hi:#ecf0f6;
+    --text-lo:#8c96aa;
+    --signal:#3ed9b8;
+    --signal-soft:#1f4b45;
+    --bench:#e3a24d;
+    --bench-soft:#4a3a20;
+    --font-display:'Palatino Linotype', Palatino, 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+    --font-body:'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono:'Cascadia Code', 'Cascadia Mono', Consolas, 'SF Mono', Menlo, monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{ margin:0; padding:0; background:var(--ink); color:var(--text-hi); font-family:var(--font-body); }
+  body{
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px, transparent 1px, transparent 48px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px, transparent 1px, transparent 48px),
+      radial-gradient(ellipse at 15% -10%, rgba(62,217,184,0.07), transparent 45%),
+      radial-gradient(ellipse at 100% 30%, rgba(227,162,77,0.06), transparent 45%);
+  }
+
+  a{ color: var(--signal); }
+
+  /* ---------- layout ---------- */
+  .wrap{ display:grid; grid-template-columns: 240px minmax(0,1fr); gap:0; max-width:1180px; margin:0 auto; }
+  nav.toc{
+    position:sticky; top:0; align-self:start; height:100vh; overflow-y:auto;
+    padding: 2.4rem 1.2rem 2rem 1.6rem; border-right:1px solid var(--line);
+  }
+  nav.toc .toc-title{
+    font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.14em;
+    font-size:.68rem; color:var(--text-lo); margin-bottom:1rem;
+  }
+  nav.toc ol{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.15rem; counter-reset:none; }
+  nav.toc li a{
+    display:block; text-decoration:none; color:var(--text-lo); font-size:.85rem;
+    padding:.4rem .5rem; border-radius:5px; line-height:1.35;
+    border-left:2px solid transparent;
+  }
+  nav.toc li a:hover{ color:var(--text-hi); background:var(--panel); }
+  nav.toc li a .t{ display:block; font-family:var(--font-mono); font-size:.68rem; color:var(--text-lo); }
+  nav.toc li.appendix-link a{ color:var(--bench); }
+  nav.toc .divider{ height:1px; background:var(--line); margin:.9rem 0; }
+
+  main{ padding: 3.2rem 4vw 6rem; min-width:0; }
+
+  header.doc-head{ margin-bottom:2.6rem; padding-bottom:2rem; border-bottom:1px solid var(--line); }
+  .kicker{
+    font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.18em;
+    font-size:.8rem; color:var(--bench); margin-bottom:1rem;
+  }
+  header.doc-head h1{
+    font-family:var(--font-display); font-weight:400; font-size:clamp(1.9rem,3.6vw,2.7rem);
+    line-height:1.15; margin:0 0 1rem; max-width:24ch;
+  }
+  header.doc-head h1 em{ font-style:italic; color:var(--signal); }
+  header.doc-head .dek{ font-size:1.02rem; color:var(--text-lo); max-width:64ch; line-height:1.6; font-weight:300; }
+  header.doc-head .dek b{ color:var(--text-hi); font-weight:600; }
+  header.doc-head .pacing{
+    margin-top:1.1rem; font-family:var(--font-mono); font-size:.78rem; color:var(--text-lo);
+  }
+  header.doc-head .pacing b{ color:var(--signal); }
+
+  section.slide-note{
+    padding: 1.8rem 0 2.2rem; border-bottom:1px solid var(--line); scroll-margin-top:1.5rem;
+  }
+  section.slide-note:last-of-type{ border-bottom:none; }
+  .slide-note .eyebrow{
+    display:flex; align-items:baseline; gap:.8rem; margin-bottom:.7rem;
+  }
+  .slide-note .eyebrow .n{
+    font-family:var(--font-mono); font-size:.72rem; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--signal); font-weight:600;
+  }
+  .slide-note .eyebrow .time{
+    font-family:var(--font-mono); font-size:.72rem; color:var(--text-lo);
+  }
+  .slide-note h2{
+    font-family:var(--font-display); font-weight:400; font-size:clamp(1.2rem,2vw,1.55rem);
+    margin:0 0 1rem; color:var(--text-hi);
+  }
+
+  ul.bullets{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.85rem; max-width:74ch; }
+  ul.bullets li{
+    font-size:.98rem; line-height:1.58; color:var(--text-hi); padding-left:1.3rem; position:relative; font-weight:300;
+  }
+  ul.bullets li::before{ content:"—"; position:absolute; left:0; color:var(--signal); font-family:var(--font-mono); }
+  ul.bullets li b, ul.bullets li strong{ color:var(--signal); font-weight:600; }
+  ul.bullets li code{
+    font-family:var(--font-mono); font-size:.88em; background:var(--panel); padding:.1em .35em; border-radius:4px; color:var(--text-hi);
+  }
+
+  .callout{
+    font-size:.96rem; color:var(--text-hi); background:var(--panel); border-left:3px solid var(--signal);
+    padding:.85rem 1.2rem; border-radius:0 6px 6px 0; max-width:70ch; font-weight:300; line-height:1.55; margin-top:.3rem;
+  }
+  .callout b{ color:var(--signal); font-weight:600; }
+
+  /* ---------- technical appendix ---------- */
+  .appendix-head{
+    margin: 3.2rem 0 1.6rem; padding-top:2.4rem; border-top:2px solid var(--bench);
+  }
+  .appendix-head .kicker{ color:var(--signal); }
+  .appendix-head h2{
+    font-family:var(--font-display); font-weight:400; font-size:clamp(1.6rem,3vw,2.1rem); margin:0; color:var(--text-hi);
+  }
+  .appendix-head .dek{ color:var(--text-lo); font-size:.92rem; margin-top:.5rem; font-weight:300; max-width:70ch; }
+
+  article.topic{
+    padding: 1.7rem 0 2rem; border-bottom:1px solid var(--line); scroll-margin-top:1.5rem;
+  }
+  article.topic:last-of-type{ border-bottom:none; }
+  article.topic h3{
+    font-family:var(--font-body); font-weight:600; font-size:1.05rem; margin:0 0 .9rem; color:var(--bench);
+  }
+  article.topic p, article.topic li{ font-size:.94rem; line-height:1.62; color:var(--text-hi); font-weight:300; }
+  article.topic ul{ margin:.4rem 0 1rem; padding-left:1.2rem; max-width:74ch; }
+  article.topic p{ max-width:74ch; margin:0 0 .9rem; }
+  article.topic b, article.topic strong{ color:var(--signal); font-weight:600; }
+
+  /* formula rendering, no external math lib */
+  .formula{
+    font-family:var(--font-mono); font-size:1rem; color:var(--text-hi);
+    background:var(--panel-2); border:1px solid var(--line); border-radius:8px;
+    padding:1rem 1.3rem; margin:.9rem 0 1.1rem; overflow-x:auto; white-space:nowrap;
+  }
+  .formula .frac{ display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; margin:0 .25em; line-height:1.15; }
+  .formula .frac .num{ border-bottom:1px solid var(--text-hi); padding:0 .2em .1em; }
+  .formula .frac .den{ padding:.1em .2em 0; }
+  .formula sub, .formula sup{ font-size:.72em; }
+  .formula .var{ font-style:italic; }
+  .formula .bar::before{ content:"—"; display:block; margin:0 0 -.55em; line-height:1; color:var(--text-hi); }
+
+  code.inline{ font-family:var(--font-mono); font-size:.88em; background:var(--panel); padding:.1em .4em; border-radius:4px; }
+
+  footer.doc-foot{
+    margin-top:3rem; padding-top:1.5rem; border-top:1px solid var(--line);
+    font-family:var(--font-mono); font-size:.75rem; color:var(--text-lo);
+  }
+
+  /* ---------- print ---------- */
+  @media print{
+    body{ background:#fff !important; color:#111; }
+    nav.toc{ display:none; }
+    .wrap{ display:block; max-width:none; }
+    main{ padding: 0 1cm; }
+    header.doc-head, .slide-note, article.topic{ border-color:#ccc; }
+    header.doc-head h1, .slide-note h2, article.topic h3, .appendix-head h2{ color:#111; }
+    header.doc-head h1 em, .slide-note .eyebrow .n, ul.bullets li::before, ul.bullets li b, ul.bullets li strong, .callout b, article.topic b, article.topic strong{
+      color:#0a7a63;
+    }
+    .kicker, .appendix-head .kicker{ color:#a06a1f; }
+    ul.bullets li, header.doc-head .dek, article.topic p, article.topic li, .callout{ color:#222; }
+    .formula{ background:#f4f4f2; border-color:#ccc; color:#111; }
+    .formula .frac .num{ border-bottom-color:#111; }
+    .callout{ background:#f4f4f2; }
+    code.inline, ul.bullets li code{ background:#eee; color:#111; }
+    section.slide-note, article.topic{ page-break-inside:avoid; }
+  }
+
+  @media (max-width:820px){
+    .wrap{ grid-template-columns: 1fr; }
+    nav.toc{ position:relative; height:auto; border-right:none; border-bottom:1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="toc">
+    <div class="toc-title">Jump to</div>
+    <ol>
+      <li><a href="#s1"><span class="t">0:00</span>Title</a></li>
+      <li><a href="#s2"><span class="t">0:30</span>The Setup</a></li>
+      <li><a href="#s3"><span class="t">1:30</span>Method</a></li>
+      <li><a href="#s4"><span class="t">2:45</span>Finding 1 — HAR earns it</a></li>
+      <li><a href="#s5"><span class="t">3:45</span>Finding 2 — Architecture alone: null</a></li>
+      <li><a href="#s6"><span class="t">4:45</span>Finding 3 — Aux features reverse it</a></li>
+      <li><a href="#s7"><span class="t">6:00</span>Where it comes from</a></li>
+      <li><a href="#s8"><span class="t">7:00</span>Caveat — data-hungry</a></li>
+      <li><a href="#s9"><span class="t">7:45</span>Limitations</a></li>
+      <li><a href="#s10"><span class="t">8:30</span>Conclusion</a></li>
+      <li><a href="#s11"><span class="t">Q&amp;A</span>Backup</a></li>
+      <li class="divider"></li>
+      <li class="appendix-link"><a href="#appendix"><span class="t">Appendix</span>Technical Q&amp;A reference</a></li>
+      <li><a href="#appendix-qlike">QLIKE</a></li>
+      <li><a href="#appendix-range">Range estimators</a></li>
+      <li><a href="#appendix-har">HAR spec</a></li>
+      <li><a href="#appendix-garch">GARCH(1,1)</a></li>
+      <li><a href="#appendix-ewma">EWMA</a></li>
+      <li><a href="#appendix-dm">Diebold–Mariano</a></li>
+      <li><a href="#appendix-gw">Giacomini–White</a></li>
+      <li><a href="#appendix-lstm">LSTM architecture</a></li>
+      <li><a href="#appendix-optuna">Optuna tuning</a></li>
+      <li><a href="#appendix-vix">VIX features</a></li>
+      <li><a href="#appendix-leakage">Leakage controls</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="doc-head">
+      <div class="kicker">Speaker Notes</div>
+      <h1>Can a Small <em>LSTM</em> Beat HAR?</h1>
+      <p class="dek">
+        10-minute slot, ML audience (MTH 5320). They know deep learning cold; they do
+        <b>not</b> know quant-finance vocabulary (HAR, QLIKE, range-based estimators, DM
+        test) — define each the first time it appears, briefly, then move on. Don't
+        over-explain LSTM/Optuna — that part of the audience is your home turf.
+      </p>
+      <p class="pacing">Target pacing sums to <b>~9:15</b>, leaving a buffer before Q&amp;A. Times below are cumulative elapsed, not per-slide duration.</p>
+    </header>
+
+    <section class="slide-note" id="s1">
+      <div class="eyebrow"><span class="n">Slide 1 — Title</span><span class="time">0:00 → 0:30</span></div>
+      <h2>Title</h2>
+      <ul class="bullets">
+        <li>One line: "Small LSTM vs. a 40-year-old three-line regression, on volatility."</li>
+        <li>Tee up the twist early so it lands as a structure, not a surprise: the honest answer turned out to be <b>two experiments</b>, not one — a null, then a reversal. Say that now so the audience knows to expect a null result and doesn't read it as you failing.</li>
+      </ul>
+    </section>
+
+    <section class="slide-note" id="s2">
+      <div class="eyebrow"><span class="n">Slide 2 — The Setup</span><span class="time">0:30 → 1:30</span></div>
+      <h2>The Setup</h2>
+      <ul class="bullets">
+        <li><b>HAR</b> (Corsi, 2009): regress volatility on three lagged terms — yesterday's value, the trailing 5-day average, the trailing 22-day average. That's it. Three OLS coefficients. It is the standard benchmark in the realized-vol forecasting literature and is notoriously hard to beat with anything fancier.</li>
+        <li>The catch: HAR's reputation was built on <b>high-frequency realized variance</b> (intraday tick data, 5-min sums of squared returns). This project only has daily OHLC bars — so the targets had to be <b>range-based</b> variance proxies instead (define range-based in one clause: "uses the day's high/low/open/close instead of intraday ticks to estimate variance more efficiently than a single squared close-to-close return"). Different estimator family, unclear a priori whether HAR's edge transfers.</li>
+        <li>This reframing is why the project exists: is HAR's dominance a property of the model or a property of the high-frequency data it was validated on?</li>
+      </ul>
+    </section>
+
+    <section class="slide-note" id="s3">
+      <div class="eyebrow"><span class="n">Slide 3 — Method</span><span class="time">1:30 → 2:45</span></div>
+      <h2>Method, one slide</h2>
+      <ul class="bullets">
+        <li>This is the slide that earns credibility with an ML audience — spend real time here.</li>
+        <li>Frozen, checksummed data snapshot — no silent redefinition of the dataset mid-project.</li>
+        <li>Chronological split + <b>monthly walk-forward retraining</b> in the test region (78 folds) — not one static train/test split. Explain briefly: every model, including HAR, is refit monthly on a rolling window, so nobody has a "stale" advantage.</li>
+        <li>Hyperparameters tuned <b>once</b>, before the model ever saw test data, then frozen — this is the pre-registration equivalent for a course project. Emphasize: the same frozen hyperparameters get reused unchanged across every later experiment (h=5, OC target, RV+aux) — that's a deliberate handicap on the network, not laziness, because it keeps every later comparison controlled to a single varying factor.</li>
+        <li>10-seed ensembles + Diebold–Mariano test — flag that this is a paired significance test for forecast accuracy (like a paired t-test on loss differentials, but built for autocorrelated forecast errors). Don't over-explain here; it's in the technical appendix if asked.</li>
+      </ul>
+    </section>
+
+    <section class="slide-note" id="s4">
+      <div class="eyebrow"><span class="n">Slide 4 — Finding 1</span><span class="time">2:45 → 3:45</span></div>
+      <h2>HAR earns its reputation here</h2>
+      <ul class="bullets">
+        <li>This slide exists to establish that HAR is actually a strong baseline <b>on this data</b>, not assumed. Ran the full classical field: persistence, EWMA, AR(1), GARCH.</li>
+        <li>HAR wins outright against everything except GARCH on the total-variance target, where the two are statistically tied. Say plainly: "HAR is the right benchmark — it isn't a strawman."</li>
+        <li>QLIKE is the loss/metric on the y-axis — flag it by name now, define in one clause ("a loss for variance forecasts that penalizes under-forecasting risk more than over-forecasting it") and point to backup for the formula if asked.</li>
+      </ul>
+    </section>
+
+    <section class="slide-note" id="s5">
+      <div class="eyebrow"><span class="n">Slide 5 — Finding 2</span><span class="time">3:45 → 4:45</span></div>
+      <h2>Architecture alone finds nothing</h2>
+      <ul class="bullets">
+        <li>Give this null result its full weight — don't rush past it apologetically. It's a real finding, not a failed experiment.</li>
+        <li>Same information HAR has (just the target's own lagged history), fed to a tuned LSTM instead of an OLS regression. Result: statistically indistinguishable from HAR, both horizons (p = 0.585, 0.667).</li>
+        <li>The takeaway for an ML audience: <b>more flexible function class ≠ automatic edge</b> when the input information is exactly the same. The LSTM successfully re-derives something HAR-shaped from raw lags — it just doesn't beat it.</li>
+      </ul>
+    </section>
+
+    <section class="slide-note" id="s6">
+      <div class="eyebrow"><span class="n">Slide 6 — Finding 3</span><span class="time">4:45 → 6:00</span></div>
+      <h2>Auxiliary features reverse the null, decisively</h2>
+      <ul class="bullets">
+        <li>The turn. Same frozen architecture, same frozen hyperparameters — the only change is adding a small, pre-registered set of auxiliary features (SPY return/volume, VIX level and change).</li>
+        <li>17–19% QLIKE improvement over HAR, on <b>every</b> target/horizon block tested, p-values from 5×10⁻⁸ to 2×10⁻⁴, 100% seed agreement (all 10 random seeds agree on direction).</li>
+      </ul>
+      <div class="callout">Say the sentence that makes this land: <b>"Nothing about the network changed. What changed is what it was allowed to look at."</b></div>
+    </section>
+
+    <section class="slide-note" id="s7">
+      <div class="eyebrow"><span class="n">Slide 7</span><span class="time">6:00 → 7:00</span></div>
+      <h2>Where it comes from: features, not architecture</h2>
+      <ul class="bullets">
+        <li>Direct head-to-head: RV+aux network beats the RV-only network by itself (p = 7.2×10⁻⁹) — so the edge isn't just "LSTM &gt; HAR," it's specifically attributable to the auxiliary information, not the architecture change.</li>
+        <li>Robustness sweep in one breath: present at both horizons, both targets, and in every regime cut (COVID, calm 2021, 2022 bear, 2023–26 recovery) — cumulative advantage never gives anything back, including in the calm periods.</li>
+      </ul>
+    </section>
+
+    <section class="slide-note" id="s8">
+      <div class="eyebrow"><span class="n">Slide 8 — Caveat</span><span class="time">7:00 → 7:45</span></div>
+      <h2>The network is data-hungry</h2>
+      <ul class="bullets">
+        <li>Practical, slightly humbling result: at ~2 years of training history HAR wins decisively; at ~5 years HAR still leads; only at the full ~12.6-year window does the network reach parity (this is the RV-only comparison, used as the cleanest read on architecture vs. data volume in isolation).</li>
+        <li>One-line moral: if you don't have a long history, don't reach for a sequence model here — HAR is the better choice at short samples.</li>
+      </ul>
+    </section>
+
+    <section class="slide-note" id="s9">
+      <div class="eyebrow"><span class="n">Slide 9 — Limitations</span><span class="time">7:45 → 8:30</span></div>
+      <h2>Limitations</h2>
+      <ul class="bullets">
+        <li>Say these fast and confidently — they read as rigor, not weakness, to an ML/stats audience.</li>
+        <li><b>Multiplicity:</b> many DM tests reported, but headline p-values are orders of magnitude below any reasonable multiple-comparison correction.</li>
+        <li><b>Statistical, not economic:</b> no transaction-cost or vol-targeting backtest — this is a forecasting-accuracy claim, not a trading-strategy claim.</li>
+        <li><b>Floor, not ceiling:</b> this establishes a lower bound on extractable signal beyond HAR, not the max achievable.</li>
+      </ul>
+    </section>
+
+    <section class="slide-note" id="s10">
+      <div class="eyebrow"><span class="n">Slide 10 — Conclusion</span><span class="time">8:30 → 9:15</span></div>
+      <h2>Conclusion</h2>
+      <ul class="bullets">
+        <li>Land the floor claim as written on the slide, slowly: there is economically meaningful predictive information beyond HAR — at least 17% of QLIKE — and it lives in the auxiliary market-state features, not the deep architecture.</li>
+        <li>Close with the two-line summary: RV-only was a genuine null; RV+aux was decisive everywhere it was tested. The honest project reports both.</li>
+        <li>Stop talking. Let Q&amp;A start.</li>
+      </ul>
+    </section>
+
+    <section class="slide-note" id="s11">
+      <div class="eyebrow"><span class="n">Slide 11 — Backup</span><span class="time">only if pulled into Q&amp;A</span></div>
+      <h2>Backup</h2>
+      <ul class="bullets">
+        <li>Full test-span forecast plot. Use if asked "does it actually track realized vol or just win on average" — this shows the LSTM visually hugging realized vol tighter than HAR, especially around volatility spikes.</li>
+      </ul>
+    </section>
+
+    <div class="appendix-head" id="appendix">
+      <div class="kicker">For Q&amp;A — not spoken from directly</div>
+      <h2>Technical Appendix</h2>
+      <p class="dek">Reference material to pull from if pressed on specifics. Not part of the timed run-through.</p>
+    </div>
+
+    <article class="topic" id="appendix-qlike">
+      <h3>QLIKE — the loss function</h3>
+      <p>For a variance prediction <span class="var">σ̂²</span> and realized (proxy) variance <span class="var">σ²</span>:</p>
+      <div class="formula">QLIKE&nbsp;=&nbsp;<span class="frac"><span class="num">σ²</span><span class="den">σ̂²</span></span>&nbsp;−&nbsp;ln<span class="frac"><span class="num">σ²</span><span class="den">σ̂²</span></span>&nbsp;−&nbsp;1</div>
+      <ul>
+        <li>Always ≥ 0, zero only at a perfect forecast. Asymmetric: <b>under</b>-forecasting variance (σ̂² ≪ σ²) is penalized far more heavily than over-forecasting — the ratio term blows up as σ̂² → 0, while it only grows logarithmically as σ̂² → ∞. That's the right shape for risk forecasting: understating risk is the costly mistake.</li>
+        <li>Robust to noisy volatility proxies: Patton (2011) shows QLIKE preserves the true ranking of forecasters even when the target you're scoring against is itself a noisy proxy for "true" latent variance — as long as the proxy is conditionally unbiased. That's <i>why</i> QLIKE (not MSE) is the primary metric here, and why the "conditionally unbiased" property of Rogers–Satchell/Garman–Klass (below) matters: it's the precondition that licenses using QLIKE for ranking at all.</li>
+        <li><b>This project trains directly on QLIKE</b>, not just evaluates on it (<code class="inline">src/train.py</code>, <code class="inline">qlike_loss_torch</code>). The network outputs a log-variance prediction <code class="inline">pred_log</code>; the loss exponentiates it, clamps to a pre-specified positive floor, forms the ratio against the level-space target, and applies the QLIKE formula — so gradients flow through the <code class="inline">exp()</code> back to the raw network output. There's an MSE-of-log fallback wired in for numerical divergence, but across all 10 seeds in every experiment it never triggered — 100% of training runs used QLIKE end to end.</li>
+        <li><b>Why the floor?</b> QLIKE has a σ²⁄σ̂² term — if the network predicts something at or near zero variance, the loss (and its gradient) explodes. The floor is a small pre-specified positive constant, fixed at data-freeze time (before any test contact) from the calibration data, not tuned to the results. Floor bind-rate (how often the floor was actually active) is logged every run as a diagnostic; it stayed at 0% for the network and HAR at test time — only the naive persistence baseline tripped it.</li>
+      </ul>
+    </article>
+
+    <article class="topic" id="appendix-range">
+      <h3>Range-based volatility estimators — why not just squared daily returns</h3>
+      <p>Squared close-to-close returns are an unbiased but extremely <i>noisy</i> proxy for daily variance (huge day-to-day sampling error since it's built from a single draw). Range estimators use the day's full OHLC bar to reduce that noise, in the same spirit as using tick data — but from data you already have.</p>
+      <ul>
+        <li><b>Rogers–Satchell</b> (1991): uses open, high, low, close; a drift-independent estimator of the variance of the trading session. Combined here with the squared overnight (close-to-open) return to build the <b>total variance (TV)</b> target — Rogers–Satchell alone only captures the session, so the overnight leg is added back in to make the target span the full calendar day.</li>
+        <li><b>Garman–Klass</b> (1980): also OHLC-based, more statistically efficient than close-to-close under its assumptions, used here for the <b>open-to-close (OC)</b> target — i.e., deliberately scoped to just the trading session, no overnight leg.</li>
+        <li>Both are only "conditionally unbiased" for the specific object they're built to estimate (TV → total daily variance; OC → session variance) — that's why every claim in the report is carefully scoped to one or the other and never conflated. This conditional-unbiasedness is also the technical precondition for QLIKE-based ranking to be valid (see Patton, 2011, above).</li>
+        <li>Calibration: before trusting either proxy, both were checked against squared-return benchmarks on the training span and had to fall inside a pre-set tolerance band ([0.8, 1.25]) — this passed for both targets.</li>
+      </ul>
+    </article>
+
+    <article class="topic" id="appendix-har">
+      <h3>HAR — full specification</h3>
+      <div class="formula" style="white-space:normal;">
+        log σ²<sub>t+1</sub> = β₀ + β<sub>D</sub> log σ²<sub>t</sub> + β<sub>W</sub> <span class="bar">log σ²</span><sub>t−4:t</sub> + β<sub>M</sub> <span class="bar">log σ²</span><sub>t−21:t</sub> + ε<sub>t</sub>
+      </div>
+      <ul>
+        <li>Three OLS terms: daily (lag-1), weekly (5-day trailing mean), monthly (22-day trailing mean) log-variance. Fit here in <b>log space</b> with a lognormal back-transform for point forecasts (Jensen's-inequality correction), not Corsi's original level-space form — a deliberate, pre-registered choice, not an oversight.</li>
+        <li>Why it's hard to beat: volatility is long-memory / slowly mean-reverting, and these three terms are a remarkably good cheap approximation to a fractionally-integrated process without needing to estimate a fractional-differencing parameter directly. It's basically a parsimonious, interpretable proxy for long-memory dynamics.</li>
+        <li>Refit monthly on the rolling window in the test region, exactly like every other model — no static-fit advantage or disadvantage.</li>
+      </ul>
+    </article>
+
+    <article class="topic" id="appendix-garch">
+      <h3>GARCH(1,1) — full specification</h3>
+      <p>Mean equation: returns <span class="var">r<sub>t</sub></span> = μ + ε<sub>t</sub>, ε<sub>t</sub> = σ<sub>t</sub>z<sub>t</sub>, z<sub>t</sub> ~ iid(0,1).</p>
+      <p>Variance equation:</p>
+      <div class="formula">σ<sub>t</sub>² = ω + α ε<sub>t−1</sub>² + β σ<sub>t−1</sub>²</div>
+      <ul>
+        <li>Fit by (quasi-)maximum likelihood on <b>close-to-close returns</b> (the <code class="inline">arch</code> package here), so its native forecast object is <i>total</i> return variance — properly scored against the TV target; scoring it against OC is flagged in the report as an object mismatch (GARCH doesn't know about the open/close split at all).</li>
+        <li>It's the one model statistically indistinguishable from HAR on TV (p = 0.64 at h=1, 0.37 at h=5) — worth saying out loud if asked "is HAR really the best classical model": no, GARCH ties it on the target GARCH is actually built for.</li>
+      </ul>
+    </article>
+
+    <article class="topic" id="appendix-ewma">
+      <h3>EWMA (RiskMetrics)</h3>
+      <div class="formula">σ<sub>t</sub>² = λ σ<sub>t−1</sub>² + (1−λ) r<sub>t−1</sub>²</div>
+      <p>Decay parameter λ fit on the training span (not fixed at the classic 0.94) following the J.P. Morgan/Reuters (1996) RiskMetrics convention. Included as a cheap, zero-parameter-estimation-cost benchmark; HAR beats it significantly everywhere.</p>
+    </article>
+
+    <article class="topic" id="appendix-dm">
+      <h3>Diebold–Mariano test + HLN correction + HAC variance</h3>
+      <p>Given two competing forecasts, form the loss differential <span class="var">d<sub>t</sub></span> = L(model<sub>t</sub>) − L(bench<sub>t</sub>) (here L = QLIKE). Under the null of equal predictive accuracy,</p>
+      <div class="formula">DM&nbsp;=&nbsp;<span class="frac"><span class="num"><span class="bar">d</span></span><span class="den">√Var̂(<span class="bar">d</span>)</span></span></div>
+      <ul>
+        <li>The variance of <span class="bar" style="display:inline-block; margin-right:.2em;">d</span> is estimated with a <b>HAC (Newey–West/Bartlett) long-run variance</b> estimator, not the naive sample variance — because forecast errors are serially correlated, especially at h=5 (a 5-day-average target means adjacent daily loss differentials mechanically overlap). Truncation lag is set ≥ h−1 as a hard floor.</li>
+        <li><b>Harvey–Leybourne–Newbold (1997) correction</b>: a finite-sample scale correction to the DM statistic, since the raw DM stat is asymptotic and can over-reject in moderate samples. The corrected stat is referred to a Student-t(n−1) distribution rather than standard normal.</li>
+        <li>Sign convention here: negative mean loss differential = the model (LSTM) beats the benchmark (HAR).</li>
+        <li>Decision rule (pre-registered, "S6" in project notes): claim an edge only if <b>DM p &lt; 0.05 on the 10-seed ensemble-mean prediction</b> <i>and</i> the same-signed loss differential holds in <b>≥ 80% of individual seeds</b> — protects against a single lucky/unlucky seed driving the ensemble mean.</li>
+      </ul>
+    </article>
+
+    <article class="topic" id="appendix-gw">
+      <h3>Giacomini–White framework (why monthly rolling refit, not one static fit)</h3>
+      <p>Giacomini &amp; White (2006) formalize predictive-ability testing when the forecasting model itself is periodically <b>re-estimated</b> on a rolling window, rather than fit once and frozen. That's exactly this project's setup (monthly refit, 78 folds, fixed 3,167-day rolling window) — the rolling-refit protocol is chosen specifically so the DM comparisons stay valid under that framework rather than requiring a single static model fit, which would be unrealistic for volatility forecasting in practice anyway.</p>
+    </article>
+
+    <article class="topic" id="appendix-lstm">
+      <h3>LSTM architecture and exact training setup</h3>
+      <ul>
+        <li><code class="inline">SmallLSTM</code>: single-layer <code class="inline">nn.LSTM</code> (hidden size 100) → take the <b>last timestep's</b> hidden state → dropout (0.096) → linear head to a single scalar. That scalar is the predicted <b>log</b>-variance. Deliberately shallow/small — the stated design belief is that at this data scale (~12.6 years of daily data, one asset) the risk is overfitting, not underfitting, so capacity was capped rather than searched upward.</li>
+        <li>Inputs: a sliding window of length 28 (<code class="inline">seq_len</code>, tuned) trading days of feature vectors. RV-only feature set = lagged log-target (lags 0–21) plus 5-day/22-day log-aggregates — deliberately the <i>same information HAR sees</i>, just handed to a flexible model instead of a linear one. RV+aux adds SPY return, |return|, overnight return, volume ratio (Tier 2) and log VIX, VIX change, VIX-implied daily variance (Tier 3) — all close-of-day-available, never revised.</li>
+        <li>Training: full determinism (fixed seeds, <code class="inline">torch.use_deterministic_algorithms(True)</code>), CPU-only specifically to avoid CUDA nondeterminism. Early stopping on validation QLIKE. 10 seeds per fold; the <b>seed-ensemble mean</b> prediction sequence (not any single seed) is the object DM tests are run against — reduces variance from initialization/training-order noise and is the pre-specified object of inference.</li>
+        <li>Scaling: a train-only-fit scaler (fit exclusively on training indices, applied everywhere) — never fit on validation or test data, to avoid leakage through normalization statistics.</li>
+      </ul>
+    </article>
+
+    <article class="topic" id="appendix-optuna">
+      <h3>Optuna tuning</h3>
+      <p>50-trial Optuna search (TPE sampler, the library default), single search on TV h=1 using train/validation only, minimizing validation QLIKE. Searched: hidden size, number of layers, dropout, learning rate, weight decay, batch size, sequence length. Result frozen (best validation QLIKE 0.4027) and reused unchanged for h=5 and for the OC target — deliberately, to keep every downstream comparison controlled to a single varying factor (see Method slide notes above).</p>
+    </article>
+
+    <article class="topic" id="appendix-vix">
+      <h3>VIX-derived features</h3>
+      <p>VIX is CBOE's model-free, options-implied 30-day expected variance measure (computed from a strip of SPX option prices, not from any single option's Black–Scholes implied vol) per the Cboe methodology whitepaper. Three derived features used here: log VIX level, day-over-day VIX change, and a VIX-implied daily variance conversion (de-annualizing the VIX index into a comparable daily-variance unit). It's forward-looking, options-market information — categorically different from anything in the RV-only feature set, which is why it's a plausible source of the auxiliary edge.</p>
+    </article>
+
+    <article class="topic" id="appendix-leakage">
+      <h3>Leakage controls</h3>
+      <ul>
+        <li>Every feature at day <i>t</i> uses only information available at the close of day <i>t</i>, verified by an explicit <b>future-perturbation test</b>: perturb the data after day <i>t</i> and assert the day-<i>t</i> feature value is unchanged (in the 116-test <code class="inline">src/</code> suite).</li>
+        <li>Scalers fit on training indices only; series never shuffled (sequence models need temporal order preserved); an embargo gap between splits sized to the largest model lookback (66 trading days) so no lookback window straddles a split boundary.</li>
+      </ul>
+    </article>
+
+    <footer class="doc-foot">Generated from <code class="inline">presentation/speaker_notes.md</code> — MTH 5320 Project 2, "Can a Small LSTM Beat HAR?"</footer>
+  </main>
+</div>
+</body>
+</html>

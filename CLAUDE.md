@@ -53,6 +53,17 @@ Report citations added same day (12 verified references — HAR, both range esti
 GARCH, EWMA/RiskMetrics, LSTM, Optuna, VIX methodology, DM/HLN/Giacomini-White
 inference — every one confirmed real via search before insertion); `REPORT.pdf`
 rebuilt via markdown→HTML→Edge-headless print (pandoc still absent on this machine).
-Remaining course deliverable: the presentation, due Wednesday evening (Zoom, ≤10 min).
-Plan for it is written in `PLAN.md` (headline-only ~10-slide self-contained HTML deck,
-figures reused from `results/report/figures/`) — not yet implemented.
+
+Presentation built (2026-07-07): `presentation/slides.html` — self-contained, single
+HTML file (no server/network dependency, figures embedded as base64), 10 headline
+slides plus one backup slide (full test-span forecast plot, for Q&A) per the outline
+in `PLAN.md`. Keyboard/click navigation, progress bar, slide counter. Visual identity:
+dark "quant desk" theme (teal = the network's found edge, amber = HAR/classical
+benchmark — colors are applied consistently by claim, not decoration), Palatino
+display / Segoe UI body / Cascadia Code-Consolas mono for all data, chart PNGs
+presented as light "exhibit" cards against the dark ground (matches their actual
+near-white matplotlib background rather than fighting it). `presentation/slides.pdf`
+is a widescreen (13.333in×7.5in) print export via the same Edge-headless technique as
+`REPORT.pdf`, for an offline fallback. Both verified by rendering in-browser and
+inspecting the exported PDF pages this session. **Remaining:** Strider review/edit
+pass and a timed rehearsal — due Wednesday evening (Zoom, ≤10 min).
