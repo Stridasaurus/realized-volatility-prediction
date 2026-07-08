@@ -113,8 +113,8 @@ elapsed, not per-slide duration.
 
 ## Slide 10 — Conclusion (8:30 → 9:15)
 
-- Land the floor claim as written on the slide, slowly: there is economically
-  meaningful predictive information beyond HAR — at least 17% of QLIKE — and it lives
+- Land the floor claim as written on the slide, slowly: there is substantively
+  large predictive information beyond HAR — at least 17% of QLIKE — and it lives
   in the auxiliary market-state features, not the deep architecture.
 - Close with the two-line summary: RV-only was a genuine null; RV+aux was decisive
   everywhere it was tested. The honest project reports both.
